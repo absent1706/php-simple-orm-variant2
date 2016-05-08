@@ -3,12 +3,6 @@
 abstract class DbModel
 {
     protected static $table;
-    protected static $conn;
-
-    public static function setConnection($conn)
-    {
-        self::$conn = $conn;
-    }
 
     public static function table()
     {
@@ -17,14 +11,10 @@ abstract class DbModel
         return $class::$table;
     }
 
-    public static function all($conn)
+    public static function all()
     {
-        /* query  begin */
-        $results = (new QueryBuilder(self::$conn, self::table()))->get();
+        $results = (new QueryBuilder(self::table()))->get();
         return $results;
-        /* query  end */
-
-
     }
 }
 
@@ -40,18 +30,24 @@ class User extends DbModel
 
 class QueryBuilder
 {
+    protected static $conn;
+
+    public static function setConnection($conn)
+    {
+        self::$conn = $conn;
+    }
+
     public function get()
     {
-        $stmt = $this->conn->prepare($this->query);
+        $stmt = self::$conn->prepare($this->query);
 
         $stmt->execute();
         return $stmt->fetchAll();
     }
 
-    public function __construct($conn, $table)
+    public function __construct($table)
     {
-        $this->conn = $conn;
-        $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        self::$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         $this->query = "SELECT * FROM $table";
     }
@@ -65,6 +61,7 @@ $user = 'root';
 $password = '';
 $conn = new PDO($connection_string, $user, $password);
 
-// var_dump((new QueryBuilder($conn, 'posts'))->get());
-DbModel::setConnection($conn);
-var_dump(Post::all());
+QueryBuilder::setConnection($conn);
+
+var_dump((new QueryBuilder('posts'))->get());
+var_dump(User::all());
