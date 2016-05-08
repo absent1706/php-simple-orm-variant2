@@ -11,6 +11,11 @@ abstract class DbModel
         return $class::$table;
     }
 
+    public static function getColumnNames()
+    {
+        return DB::getColumnNames(self::table());
+    }
+
     public static function all()
     {
         $results = self::query()->get(get_called_class());
@@ -31,8 +36,26 @@ abstract class DbModel
 
     public function save()
     {
-        // $this->
+        // var_dump($this->id);die();
+        if (isset($this->id)) {
+            $this->_update();
+        }
+        else {
+            $this->_insert();
+        }
     }
+
+    protected function _insert()
+    {
+        // TODO
+    }
+
+    protected function _update()
+    {
+        // TODO
+    }
+
+    // TODO: delete()
 }
 
 class Post extends DbModel
@@ -47,16 +70,9 @@ class User extends DbModel
 
 class QueryBuilder
 {
-    protected static $conn;
-
-    public static function setConnection($conn)
-    {
-        self::$conn = $conn;
-    }
-
     public function get()
     {
-        $stmt = self::$conn->prepare($this->query);
+        $stmt = DB::getConnection()->prepare($this->query);
 
         $stmt->execute();
         return $this->resultClass ? $stmt->fetchAll(PDO::FETCH_CLASS, $this->resultClass) : $stmt->fetchAll();
@@ -82,12 +98,41 @@ class QueryBuilder
 
     public function __construct($table, $resultClass = null)
     {
-        self::$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
         $this->query = "SELECT * FROM $table";
         $this->resultClass = $resultClass;
     }
 }
+
+class DB
+{
+    protected static $conn;
+
+    public static function setConnection($conn)
+    {
+        self::$conn = $conn;
+        self::$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    }
+
+    public static function getConnection()
+    {
+        return self::$conn;
+    }
+
+    public static function getColumnNames($table)
+    {
+        // Works ONLY for MySQL
+        $sql = 'select column_name from information_schema.columns where table_schema="'.self::dbName().'" and table_name="'.$table.'"';
+        $stmt = self::$conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    public static function dbName()
+    {
+        return self::$conn->query('select database()')->fetchColumn();
+    }
+}
+
 
 
 // var_dump(Post::all()[0]->title);
@@ -99,15 +144,21 @@ $password = '';
 $conn = new PDO($connection_string, $user, $password);
 
 // bootstrap.php
-QueryBuilder::setConnection($conn);
+DB::setConnection($conn);
 
 // controller
-// var_dump((new QueryBuilder('posts'))->get());
-var_dump(User::all());
-var_dump(User::find(1));
-var_dump(User::query()->where("name LIKE '%ete%'")->get());
+(new QueryBuilder('posts'))->get();
+User::all();
+User::find(1);
+User::query()->where("name LIKE '%ete%'")->get();
 
 // save
 $user = User::find(1);
-die($user->id);
+$user->save();
 
+$user2 = new User;
+$user2->name = "Alex";
+$user2->fdgfdgdfg='fd';
+$user2->save();
+
+User::getColumnNames();
