@@ -13,8 +13,25 @@ abstract class DbModel
 
     public static function all()
     {
-        $results = (new QueryBuilder(self::table()))->get(get_called_class());
+        $results = self::query()->get(get_called_class());
         return $results;
+    }
+
+    public static function find($id)
+    {
+        // TODO: not hardcode 'id' field name
+        $result = self::query()->where("id = $id")->getFirst(get_called_class());
+        return $result;
+    }
+
+    public static function query()
+    {
+        return new QueryBuilder(self::table(), get_called_class());
+    }
+
+    public function save()
+    {
+        // $this->
     }
 }
 
@@ -37,19 +54,38 @@ class QueryBuilder
         self::$conn = $conn;
     }
 
-    public function get($resultClass = null)
+    public function get()
     {
         $stmt = self::$conn->prepare($this->query);
 
         $stmt->execute();
-        return $resultClass ? $stmt->fetchAll(PDO::FETCH_CLASS, $resultClass) : $stmt->fetchAll();
+        return $this->resultClass ? $stmt->fetchAll(PDO::FETCH_CLASS, $this->resultClass) : $stmt->fetchAll();
     }
 
-    public function __construct($table)
+    public function getFirst()
+    {
+        $results = $this->limit(1)->get();
+        return $results ? $results[0] : null;
+    }
+
+    public function limit($limit)
+    {
+        $this->query .= " LIMIT 1";
+        return $this;
+    }
+
+    public function where($condition)
+    {
+        $this->query .= " WHERE $condition";
+        return $this;
+    }
+
+    public function __construct($table, $resultClass = null)
     {
         self::$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         $this->query = "SELECT * FROM $table";
+        $this->resultClass = $resultClass;
     }
 }
 
@@ -66,5 +102,12 @@ $conn = new PDO($connection_string, $user, $password);
 QueryBuilder::setConnection($conn);
 
 // controller
-var_dump((new QueryBuilder('posts'))->get());
+// var_dump((new QueryBuilder('posts'))->get());
 var_dump(User::all());
+var_dump(User::find(1));
+var_dump(User::query()->where("name LIKE '%ete%'")->get());
+
+// save
+$user = User::find(1);
+die($user->id);
+
