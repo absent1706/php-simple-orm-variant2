@@ -61,11 +61,26 @@ abstract class DbModel
 class Post extends DbModel
 {
     protected static $table = 'posts';
+
+    public function user()
+    {
+        // TODO: implement standard belongsTo method that returns the same query
+        // method will look like return $this->belongsTo('User');
+        return User::query()->where('id = '.$this->user_id);
+    }
+
 }
 
 class User extends DbModel
 {
     protected static $table = 'users';
+
+    public function posts()
+    {
+        // TODO: implement standard hasMany method that returns the same query
+        // method will look like return $this->hasMany('Post');
+        return Post::query()->where('user_id = '.$this->id);
+    }
 }
 
 class QueryBuilder
@@ -162,3 +177,11 @@ $user2->fdgfdgdfg='fd';
 $user2->save();
 
 User::getColumnNames();
+
+// relations
+$user = User::find(1);
+$user->posts()->get();
+
+Post::find(2)->user()->getFirst();
+
+// TODO: make next code work: $game->home_team->name . It will be evaluated to $game->home_team()->getFirst()->name. Use __get() magic
