@@ -13,7 +13,7 @@ abstract class DbModel
 
     public static function all()
     {
-        $results = (new QueryBuilder(self::table()))->get();
+        $results = (new QueryBuilder(self::table()))->get(get_called_class());
         return $results;
     }
 }
@@ -37,12 +37,12 @@ class QueryBuilder
         self::$conn = $conn;
     }
 
-    public function get()
+    public function get($resultClass = null)
     {
         $stmt = self::$conn->prepare($this->query);
 
         $stmt->execute();
-        return $stmt->fetchAll();
+        return $resultClass ? $stmt->fetchAll(PDO::FETCH_CLASS, $resultClass) : $stmt->fetchAll();
     }
 
     public function __construct($table)
@@ -56,12 +56,15 @@ class QueryBuilder
 
 // var_dump(Post::all()[0]->title);
 
+// app config
 $connection_string = "mysql:host=localhost;dbname=test_db";
 $user = 'root';
 $password = '';
 $conn = new PDO($connection_string, $user, $password);
 
+// bootstrap.php
 QueryBuilder::setConnection($conn);
 
+// controller
 var_dump((new QueryBuilder('posts'))->get());
 var_dump(User::all());
